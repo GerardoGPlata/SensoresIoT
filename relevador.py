@@ -2,6 +2,8 @@ import RPi.GPIO as GPIO
 import time
 import board
 
+
+#Codigo de Prueba no funcional
 # Configurar VEX 2 Wire Servo
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(4, GPIO.OUT)
