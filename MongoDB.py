@@ -4,7 +4,7 @@ import time
 
 # Conectar Base de datos
 cluster = pymongo.MongoClient(
-    "mongodb+srv://gerardogplata:$Plata6494@bdnube.frd33vq.mongodb.net/?retryWrites=true&w=majority"
+    "mongodb+srv://gerardogp@bdnube.frd33vq.mongodb.net/?retryWrites=true&w=majority"
 )
 
 # Crear base de datos
