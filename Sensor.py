@@ -5,33 +5,7 @@ import json
 import board
 import RPi.GPIO as GPIO
 import os
-from MongoDB import cargarDatos
-
-# Sensor Temperatura y humedad DHT11
-def sensorTemperaturaHumedad():
-    # Configurar GPIO
-    GPIO.setup(4, GPIO.OUT)
-    GPIO.output(4, GPIO.LOW)
-    sensor = Adafruit_dht.DHT11
-    pin = 24
-    while True:
-        os.system("clear")
-        humedad, temperatura = Adafruit_dht.read(sensor, pin)
-        if humedad is not None and temperatura is not None:
-            GPIO.output(4, GPIO.HIGH)
-            with open("Sensores.json", "w") as archivo:
-                datos = {
-                    "Nombre": "DHT11",
-                    "Temperatura": temperatura,
-                    "Humedad": humedad,
-                }
-                print("Temperatura: ", temperatura)
-                print("Humedad: ", humedad)
-                json.dump(datos, archivo, indent=4)
-            archivo.close()
-            cargarDatos()
-        time.sleep(3)
-        GPIO.output(4, GPIO.LOW)
+from MongoDB import cargarTodos
 
 
 # Sensor detector IR
@@ -44,15 +18,26 @@ def sensorIR():
         # Comprobar si hay movimiento
         if GPIO.input(pin) == 0:
             # Encender led
-            with open("Sensores.json", "w") as archivo:
+            with open("sensorIR.json", "w") as archivo:
                 datos = {
-                    "Nombre": "IR",
-                    "Estado": 0,
+                    "Nombre": "Sensor IR",
+                    "Estado": 1,
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
+            print("Apagando banda")
+            cargarTodos()
             apagarBanda()
             break
+
+def sensorIR2():
+    pin = 22
+    # Configurar GPIO
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.IN)
+    while True:
+        if GPIO.input(pin) == 0:
+            print("pin: ", GPIO.input(pin))
 
 
 # Sensor emisor IR
@@ -60,69 +45,144 @@ def sensorEmisorIR():
     pin = 23
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(pin, GPIO.IN)
+    GPIO.setup(pin, GPIO.OUT)
     while True:
-        # Comprobar si hay movimiento
-        if GPIO.input(pin) == 0:
-            # Encender led
-            with open("Sensores.json", "w") as archivo:
-                datos = {
-                    "Nombre": "IR",
-                    "Estado": 1,
-                }
-                json.dump(datos, archivo, indent=4)
-            archivo.close()
-            apagarBanda()
-            break
+        # Encender emisor IR
+        GPIO.output(pin, GPIO.HIGH)
 
 
 # sensor boton
 def sensorBoton():
+    estatusSensores()
     pin = 17
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.IN)
-    GPIO.setup(21, GPIO.OUT)
-    GPIO.output(21, GPIO.LOW)
+    pararBanda()
     while True:
         # Comprobar si hay movimiento
         if GPIO.input(pin) == 0:
             # Encender led
-            with open("Sensores.json", "w") as archivo:
+            estatusSensores()
+            with open("boton.json", "w") as archivo:
                 datos = {
                     "Nombre": "Boton",
                     "Estado": 1,
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
+            cargarTodos()
             encenderBanda()
-            break
+            sensorIR()
 
 
 # Sensor de banda
 def encenderBanda():
+    print("Encendiendo banda")
     pin = 21
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.HIGH)
+    # Subir datos a la base de datos
+    with open("banda.json", "w") as archivo:
+        datos = {
+            "Nombre": "Banda",
+            "Estado": 1,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
 
 
 def apagarBanda():
+    print("Apagando banda")
     pin = 21
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
-    sensorBomba()
-    time.sleep(3)
+    # Subir datos a la base de datos
+    with open("banda.json", "w") as archivo:
+        datos = {
+            "Nombre": "Banda",
+            "Estado": 0,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
+    encenderBomba()
+    time.sleep(5)
     encenderBanda()
+
+def pararBanda():
+    print("Parando banda")
+    pin = 21
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.LOW)
 
 
 # enceder bomba de agua
-def sensorBomba():
+def encenderBomba():
+    print("Encendiendo bomba")
     pin = 27
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.HIGH)
-    time.sleep(3)
+    # Subir datos a la base de datos
+    with open("bomba.json", "w") as archivo:
+        datos = {
+            "Nombre": "Bomba",
+            "Estado": 1,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
+
+# Apagar bomba de agua
+def apagarBomba():
+    print("Apagando bomba")
+    pin = 27
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
-    encenderBanda()
+    # Subir datos a la base de datos
+    with open("bomba.json", "w") as archivo:
+        datos = {
+            "Nombre": "Bomba",
+            "Estado": 0,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
+
+def estatusSensores():
+    # El estatus de los sensores sera de 0
+    with open("sensorIR.json", "w") as archivo:
+        datos = {
+            "Nombre": "Sensor IR",
+            "Estado": 0,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    with open("boton.json", "w") as archivo:
+        datos = {
+            "Nombre": "Boton",
+            "Estado": 0,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    with open("banda.json", "w") as archivo:
+        datos = {
+            "Nombre": "Banda",
+            "Estado": 0,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    with open("bomba.json", "w") as archivo:
+        datos = {
+            "Nombre": "Bomba",
+            "Estado": 0,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
