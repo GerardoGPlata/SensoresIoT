@@ -4,7 +4,6 @@ import time
 import json
 import board
 import RPi.GPIO as GPIO
-import threading
 import os
 from MongoDB import cargarDatos
 
@@ -37,22 +36,44 @@ def sensorTemperaturaHumedad():
 
 # Sensor detector IR
 def sensorIR():
-    pin = board.D17
+    pin = 22
+    # Configurar GPIO
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.IN)
     while True:
         # Comprobar si hay movimiento
-        if GPIO.input(pin):
-            print("Hay movimiento")
-        else:
-            print("No hay movimiento")
-        time.sleep(1)
+        if GPIO.input(pin) == 0:
+            # Encender led
+            with open("Sensores.json", "w") as archivo:
+                datos = {
+                    "Nombre": "IR",
+                    "Estado": 0,
+                }
+                json.dump(datos, archivo, indent=4)
+            archivo.close()
+            apagarBanda()
+            break
 
 
 # Sensor emisor IR
 def sensorEmisorIR():
-    pin = board.D23
+    pin = 23
+    # Configurar GPIO
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.IN)
     while True:
-        # Encender emisor IR
-        GPIO.output(pin, GPIO.HIGH)
+        # Comprobar si hay movimiento
+        if GPIO.input(pin) == 0:
+            # Encender led
+            with open("Sensores.json", "w") as archivo:
+                datos = {
+                    "Nombre": "IR",
+                    "Estado": 1,
+                }
+                json.dump(datos, archivo, indent=4)
+            archivo.close()
+            apagarBanda()
+            break
 
 
 # sensor boton
@@ -61,13 +82,12 @@ def sensorBoton():
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.IN)
-    GPIO.setup(4, GPIO.OUT)
-    GPIO.output(4, GPIO.LOW)
+    GPIO.setup(21, GPIO.OUT)
+    GPIO.output(21, GPIO.LOW)
     while True:
         # Comprobar si hay movimiento
         if GPIO.input(pin) == 0:
             # Encender led
-            GPIO.output(4, GPIO.HIGH)
             with open("Sensores.json", "w") as archivo:
                 datos = {
                     "Nombre": "Boton",
@@ -75,9 +95,34 @@ def sensorBoton():
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
-            # Iniciar hilo de temperatura y humedad
-            hilo1 = threading.Thread(target=sensorTemperaturaHumedad, args=())
-            hilo1.start()
+            encenderBanda()
             break
-        else:
-            time.sleep(1)
+
+
+# Sensor de banda
+def encenderBanda():
+    pin = 21
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.HIGH)
+
+
+def apagarBanda():
+    pin = 21
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.LOW)
+    sensorBomba()
+    time.sleep(3)
+    encenderBanda()
+
+
+# enceder bomba de agua
+def sensorBomba():
+    pin = 27
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.HIGH)
+    time.sleep(3)
+    GPIO.output(pin, GPIO.LOW)
+    encenderBanda()
