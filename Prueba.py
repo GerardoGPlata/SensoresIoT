@@ -2,7 +2,7 @@ import json
 import os
 import threading
 import RPi.GPIO as GPIO
-from Sensor import sensorBoton, estatusSensores
+from Sensor import sensorBoton, estatusSensores, sensorUltrasonicoApagar
 from MongoDB import cargarTodos
 
 # Conectar pines
@@ -11,12 +11,6 @@ from MongoDB import cargarTodos
 # sensorEmisorIR pin 23
 # sensorBanda pin 21
 # sensorBomba pin 27
-
-# Apagar banda
-def apagarBanda():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(21, GPIO.OUT)
-    GPIO.output(21, GPIO.LOW)
 
 
 # Crear json vacio de sensores si no existe
@@ -38,10 +32,10 @@ if not os.path.exists("bomba.json"):
     with open("bomba.json", "w") as file:
         json.dump(datos, file)
     file.close()
-if not os.path.exists("sensorIR.json"):
+if not os.path.exists("sensorUltrasonico.json"):
     datos = []
     # Agregar direccion al json sin repetir
-    with open("sensorIR.json", "w") as file:
+    with open("sensorUltrasonico.json", "w") as file:
         json.dump(datos, file)
     file.close()
 
@@ -52,4 +46,6 @@ cargarTodos()
 
 # Iniciar Hilo Temperatura y humedad
 hiloBoton = threading.Thread(target=sensorBoton, args=())
+hiloUltrasonico = threading.Thread(target=sensorUltrasonicoApagar, args=())
 hiloBoton.start()
+hiloUltrasonico.start()

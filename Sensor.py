@@ -7,73 +7,98 @@ import RPi.GPIO as GPIO
 import os
 from MongoDB import cargarTodos
 
-
-# Sensor detector IR
-def sensorIR():
-    pin = 22
+# Sensor ultrasonico para encender
+def sensorUltrasonico():
+    pinTrig = 24
+    pinEcho = 25
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(pin, GPIO.IN)
+    GPIO.setup(pinTrig, GPIO.OUT)
+    GPIO.setup(pinEcho, GPIO.IN)
     while True:
-        # Comprobar si hay movimiento
-        if GPIO.input(pin) == 0:
+        # Encender emisor IR
+        GPIO.output(pinTrig, GPIO.HIGH)
+        time.sleep(0.00001)
+        GPIO.output(pinTrig, GPIO.LOW)
+        startTime = time.time()
+        stopTime = time.time()
+        while GPIO.input(pinEcho) == 0:
+            startTime = time.time()
+        while GPIO.input(pinEcho) == 1:
+            stopTime = time.time()
+        timeElapsed = stopTime - startTime
+        distance = (timeElapsed * 34300) / 2
+        #print("Distancia: ", distance, "cm")
+        if distance < 10:
+            # Apagar banda
+            apagarBanda()
             # Encender led
-            with open("sensorIR.json", "w") as archivo:
+            with open("sensorUltrasonico.json", "w") as archivo:
                 datos = {
-                    "Nombre": "Sensor IR",
-                    "Estado": 1,
+                    "Nombre": "Sensor Ultrasonico",
+                    "Distancia": distance,
+                    "Pines": [pinTrig, pinEcho],
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
-            print("Apagando banda")
             cargarTodos()
-            apagarBanda()
             break
 
-def sensorIR2():
-    pin = 22
+
+# Sensor ultrasonico para apagar
+def sensorUltrasonicoApagar():
+    pinTrig = 22
+    pinEcho = 23
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(pin, GPIO.IN)
-    while True:
-        if GPIO.input(pin) == 0:
-            print("pin: ", GPIO.input(pin))
-
-
-# Sensor emisor IR
-def sensorEmisorIR():
-    pin = 23
-    # Configurar GPIO
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(pin, GPIO.OUT)
+    GPIO.setup(pinTrig, GPIO.OUT)
+    GPIO.setup(pinEcho, GPIO.IN)
     while True:
         # Encender emisor IR
-        GPIO.output(pin, GPIO.HIGH)
+        GPIO.output(pinTrig, GPIO.HIGH)
+        time.sleep(0.00001)
+        GPIO.output(pinTrig, GPIO.LOW)
+        startTime = time.time()
+        stopTime = time.time()
+        while GPIO.input(pinEcho) == 0:
+            startTime = time.time()
+        while GPIO.input(pinEcho) == 1:
+            stopTime = time.time()
+        timeElapsed = stopTime - startTime
+        distance = (timeElapsed * 34300) / 2
+        if distance < 10:
+            time.sleep(2)
+            pararBanda()
 
 
 # sensor boton
 def sensorBoton():
     estatusSensores()
+    pararBanda()
     pin = 17
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.IN)
-    pararBanda()
+    GPIO.setup(4, GPIO.OUT)
     while True:
         # Comprobar si hay movimiento
         if GPIO.input(pin) == 0:
             # Encender led
+            GPIO.output(4, GPIO.LOW)
             estatusSensores()
             with open("boton.json", "w") as archivo:
                 datos = {
                     "Nombre": "Boton",
-                    "Estado": 1,
+                    "Estado": "Encendido",
+                    "Pines": [pin],
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
             cargarTodos()
+            # apagar led
+            GPIO.output(4, GPIO.HIGH)
             encenderBanda()
-            sensorIR()
+            sensorUltrasonico()
 
 
 # Sensor de banda
@@ -87,7 +112,8 @@ def encenderBanda():
     with open("banda.json", "w") as archivo:
         datos = {
             "Nombre": "Banda",
-            "Estado": 1,
+            "Estado": "Encendida",
+            "Pines": [pin],
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -104,21 +130,32 @@ def apagarBanda():
     with open("banda.json", "w") as archivo:
         datos = {
             "Nombre": "Banda",
-            "Estado": 0,
+            "Estado": "Apagada",
+            "Pines": [pin],
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
     cargarTodos()
     encenderBomba()
     time.sleep(5)
+    apagarBomba()
     encenderBanda()
 
+
 def pararBanda():
-    print("Parando banda")
     pin = 21
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, GPIO.LOW)
+    with open("banda.json", "w") as archivo:
+        datos = {
+            "Nombre": "Banda",
+            "Estado": "Apagada",
+            "Pines": [pin],
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
 
 
 # enceder bomba de agua
@@ -132,11 +169,13 @@ def encenderBomba():
     with open("bomba.json", "w") as archivo:
         datos = {
             "Nombre": "Bomba",
-            "Estado": 1,
+            "Estado": "Encendida",
+            "Pines": [pin],
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
     cargarTodos()
+
 
 # Apagar bomba de agua
 def apagarBomba():
@@ -149,39 +188,45 @@ def apagarBomba():
     with open("bomba.json", "w") as archivo:
         datos = {
             "Nombre": "Bomba",
-            "Estado": 0,
+            "Estado": "Apagada",
+            "Pines": [pin],
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
     cargarTodos()
 
+
 def estatusSensores():
     # El estatus de los sensores sera de 0
-    with open("sensorIR.json", "w") as archivo:
-        datos = {
-            "Nombre": "Sensor IR",
-            "Estado": 0,
-        }
-        json.dump(datos, archivo, indent=4)
-    archivo.close()
     with open("boton.json", "w") as archivo:
         datos = {
             "Nombre": "Boton",
-            "Estado": 0,
+            "Estado": "Apagado",
+            "Pines": 17,
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
     with open("banda.json", "w") as archivo:
         datos = {
             "Nombre": "Banda",
-            "Estado": 0,
+            "Estado": "Apagada",
+            "Pines": 21,
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
     with open("bomba.json", "w") as archivo:
         datos = {
             "Nombre": "Bomba",
-            "Estado": 0,
+            "Estado": "Apagada",
+            "Pines": 27,
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    with open("sensorUltrasonico.json", "w") as archivo:
+        datos = {
+            "Nombre": "Sensor Ultrasonico",
+            "Distancia": 0,
+            "Pines": [20, 21],
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()

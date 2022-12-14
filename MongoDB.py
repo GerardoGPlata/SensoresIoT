@@ -48,7 +48,7 @@ def cargarTodos():
         collection.insert_one(datos)
     else:
         collection.update_one({"Nombre": datos["Nombre"]}, {"$set": datos})
-    with open("sensorIR.json", "r") as archivo:
+    with open("sensorUltrasonico.json", "r") as archivo:
         datos = json.load(archivo)
         archivo.close()
     # Comprobar si el sensor existe en la base de datos
