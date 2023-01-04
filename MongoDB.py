@@ -3,10 +3,12 @@ import json
 import time
 
 # Conectar Base de datos
-cluster = pymongo.MongoClient("mongodb+srv://gerardogplata:$Plata6494@bdnube.frd33vq.mongodb.net/?retryWrites=true&w=majority")
+cluster = pymongo.MongoClient(
+    "mongodb+srv://gerardogplata:$Plata6494@bdnube.frd33vq.mongodb.net/?retryWrites=true&w=majority"
+)
 
 # Crear base de datos
-db = cluster["BDNube"]
+db = cluster["test"]
 # Crear coleccion
 collection = db["Sensores"]
 
@@ -21,6 +23,7 @@ def cargarDatos():
         collection.insert_one(datos)
     else:
         collection.update_one({"Nombre": datos["Nombre"]}, {"$set": datos})
+
 
 # Cargar todos los json a MongoDB
 def cargarTodos():

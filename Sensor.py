@@ -28,7 +28,7 @@ def sensorUltrasonico():
             stopTime = time.time()
         timeElapsed = stopTime - startTime
         distance = (timeElapsed * 34300) / 2
-        #print("Distancia: ", distance, "cm")
+        # print("Distancia: ", distance, "cm")
         if distance < 10:
             # Apagar banda
             apagarBanda()
@@ -36,8 +36,10 @@ def sensorUltrasonico():
             with open("sensorUltrasonico.json", "w") as archivo:
                 datos = {
                     "Nombre": "Sensor Ultrasonico",
+                    "Estado": "Encendido",
                     "Distancia": distance,
                     "Pines": [pinTrig, pinEcho],
+                    "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
@@ -67,7 +69,16 @@ def sensorUltrasonicoApagar():
         timeElapsed = stopTime - startTime
         distance = (timeElapsed * 34300) / 2
         if distance < 10:
-            time.sleep(2)
+            # Mandar datos a la base de datos
+            with open("sensorUltrasonicoApagar.json", "w") as archivo:
+                datos = {
+                    "Nombre": "Sensor Ultrasonico",
+                    "Estado": "Apagado",
+                    "Distancia": distance,
+                    "Pines": [pinTrig, pinEcho],
+                    "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
+                }
+                json.dump(datos, archivo, indent=4)
             pararBanda()
 
 
@@ -79,31 +90,29 @@ def sensorBoton():
     # Configurar GPIO
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.IN)
-    GPIO.setup(4, GPIO.OUT)
+    GPIO.setup(27, GPIO.OUT)
+    GPIO.output(27, GPIO.LOW)
     while True:
         # Comprobar si hay movimiento
         if GPIO.input(pin) == 0:
             # Encender led
-            GPIO.output(4, GPIO.LOW)
             estatusSensores()
             with open("boton.json", "w") as archivo:
                 datos = {
                     "Nombre": "Boton",
                     "Estado": "Encendido",
                     "Pines": [pin],
+                    "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
                 }
                 json.dump(datos, archivo, indent=4)
             archivo.close()
             cargarTodos()
-            # apagar led
-            GPIO.output(4, GPIO.HIGH)
             encenderBanda()
             sensorUltrasonico()
 
 
 # Sensor de banda
 def encenderBanda():
-    print("Encendiendo banda")
     pin = 21
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
@@ -114,6 +123,7 @@ def encenderBanda():
             "Nombre": "Banda",
             "Estado": "Encendida",
             "Pines": [pin],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -121,7 +131,6 @@ def encenderBanda():
 
 
 def apagarBanda():
-    print("Apagando banda")
     pin = 21
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
@@ -132,6 +141,7 @@ def apagarBanda():
             "Nombre": "Banda",
             "Estado": "Apagada",
             "Pines": [pin],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -140,6 +150,7 @@ def apagarBanda():
     time.sleep(5)
     apagarBomba()
     encenderBanda()
+    cargarTodos()
 
 
 def pararBanda():
@@ -152,6 +163,7 @@ def pararBanda():
             "Nombre": "Banda",
             "Estado": "Apagada",
             "Pines": [pin],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -160,7 +172,6 @@ def pararBanda():
 
 # enceder bomba de agua
 def encenderBomba():
-    print("Encendiendo bomba")
     pin = 27
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
@@ -171,6 +182,8 @@ def encenderBomba():
             "Nombre": "Bomba",
             "Estado": "Encendida",
             "Pines": [pin],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
+            "Litros": 0,
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -179,7 +192,6 @@ def encenderBomba():
 
 # Apagar bomba de agua
 def apagarBomba():
-    print("Apagando bomba")
     pin = 27
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
@@ -190,6 +202,8 @@ def apagarBomba():
             "Nombre": "Bomba",
             "Estado": "Apagada",
             "Pines": [pin],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
+            "Litros": 0,
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -202,7 +216,8 @@ def estatusSensores():
         datos = {
             "Nombre": "Boton",
             "Estado": "Apagado",
-            "Pines": 17,
+            "Pines": [17],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -210,7 +225,8 @@ def estatusSensores():
         datos = {
             "Nombre": "Banda",
             "Estado": "Apagada",
-            "Pines": 21,
+            "Pines": [21],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
@@ -218,15 +234,50 @@ def estatusSensores():
         datos = {
             "Nombre": "Bomba",
             "Estado": "Apagada",
-            "Pines": 27,
+            "Pines": [27],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
+            "Litros": 0,
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
     with open("sensorUltrasonico.json", "w") as archivo:
         datos = {
             "Nombre": "Sensor Ultrasonico",
+            "Estado": "Apagado",
             "Distancia": 0,
             "Pines": [20, 21],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
+        }
+        json.dump(datos, archivo, indent=4)
+    archivo.close()
+    cargarTodos()
+
+
+# Sensor Flujo de agua
+def sensorFlujo():
+    pin = 13
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(pin, GPIO.IN)
+    rate_cnt = 0
+    tot_cnt = 0
+    minutes = 0
+    constant = 0.10
+    time_new = 0.0
+    time_new = time.time() + 10
+    rate_cnt = 0
+    while time.time() <= time_new:
+        if GPIO.input(input) != 0:
+            rate_cnt += 1
+            tot_cnt += 1
+    minutes += 1
+    # Enviar Datos a la base de datos
+    with open("bomba.json", "w") as archivo:
+        datos = {
+            "Nombre": "Bomba de Agua",
+            "Estado": "Encendido",
+            "Pines": [13],
+            "Fecha": time.strftime("%d/%m/%y/%H:%M:%S"),
+            "Litros": round(tot_cnt * constant, 4),
         }
         json.dump(datos, archivo, indent=4)
     archivo.close()
